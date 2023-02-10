@@ -1,15 +1,16 @@
-import numpy as np
-import pandas as pd
-import geopandas as gpd
-from typing import Union, Tuple, Optional
 import logging
 import os
-import networkx as nx
-from shapely.geometry import LineString
 from math import floor
-from pyproj import Transformer
+from typing import Optional, Tuple, Union
 
-from elara.factory import WorkStation, Tool
+import geopandas as gpd
+import networkx as nx
+import numpy as np
+import pandas as pd
+from pyproj import Transformer
+from shapely.geometry import LineString
+
+from elara.factory import Tool, WorkStation
 
 
 class EventHandlerTool(Tool):
@@ -882,8 +883,7 @@ modes. Elara will continue with all links found in network.
             counts_link_subpop = flatten_subpops(self, self.counts)
             duration_link_subpop = flatten_subpops(self, self.duration_sum)
             average_speeds = calc_average_speed(self, counts_link_subpop, duration_link_subpop)
-
-            average_speeds.index.name = "id"
+            average_speeds.index = average_speeds.index.set_names(["link_id"])
             self.result_dfs[key] = average_speeds
 
         # Calc average speed at population level
@@ -902,6 +902,7 @@ modes. Elara will continue with all links found in network.
         )
 
         average_speeds = calc_average_speed(self, counts_link_pop, duration_link_pop)
+        average_speeds.index = average_speeds.index.set_names(["link_id"])
         self.result_dfs[key] = average_speeds
 
         if self.groupby_person_attribute:
@@ -910,7 +911,8 @@ modes. Elara will continue with all links found in network.
             max_speeds = flatten_subpops(self, calc_max_matrices(self)[0]).reset_index().set_index("elem")
             max_speeds = self.elem_gdf.join(max_speeds, how="left")
             max_speeds = multiply_distance(self, max_speeds)
-            max_speeds.index.name = "id"
+            max_speeds.index = max_speeds.index.set_names(["link_id"])
+
             self.result_dfs[key] = max_speeds
 
         # Calc max at pop level
@@ -921,6 +923,7 @@ modes. Elara will continue with all links found in network.
         ).sort_index()
         max_speeds = self.elem_gdf.join(max_speeds, how="left")
         max_speeds = multiply_distance(self, max_speeds)
+        max_speeds.index = max_speeds.index.set_names(["link_id"])
         self.result_dfs[key] = max_speeds
 
         if self.groupby_person_attribute:
@@ -930,7 +933,7 @@ modes. Elara will continue with all links found in network.
             min_speeds = flatten_subpops(self, min_matrix).reset_index().set_index("elem")
             min_speeds = self.elem_gdf.join(min_speeds, how="left")
             min_speeds = multiply_distance(self, min_speeds)
-            min_speeds.index.name = "id"
+            min_speeds.index = min_speeds.index.set_names(["link_id"])
             self.result_dfs[key] = min_speeds
 
         # Calc max at pop level
@@ -941,6 +944,7 @@ modes. Elara will continue with all links found in network.
         ).sort_index()
         min_speeds = self.elem_gdf.join(min_speeds, how="left")
         min_speeds = multiply_distance(self, min_speeds)
+        min_speeds.index = min_speeds.index.set_names(["link_id"])
         self.result_dfs[key] = min_speeds
 
         # convert all dataframes from meters per second to kph
