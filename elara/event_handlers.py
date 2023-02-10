@@ -16,6 +16,7 @@ class EventHandlerTool(Tool):
     """
     Base Tool class for Event Handling.
     """
+
     result_dfs = dict()
     options_enabled = True
 
@@ -25,17 +26,12 @@ class EventHandlerTool(Tool):
 
         self.groupby_person_attribute = None
 
-    def build(
-            self,
-            resources: dict,
-            write_path=None) -> None:
+    def build(self, resources: dict, write_path=None) -> None:
 
         super().build(resources, write_path)
 
     @staticmethod
-    def generate_elem_ids(
-            elems_in: Union[list, gpd.GeoDataFrame]
-    ) -> Tuple[list, dict]:
+    def generate_elem_ids(elems_in: Union[list, gpd.GeoDataFrame]) -> Tuple[list, dict]:
         """
         Generate element ID list and index dictionary from given geodataframe.
         :param elems_in: elements
@@ -44,9 +40,7 @@ class EventHandlerTool(Tool):
         if isinstance(elems_in, pd.DataFrame) or isinstance(elems_in, pd.Series):
             elems_in = elems_in.index.tolist()
 
-        elem_indices = {
-            key: value for (key, value) in zip(elems_in, range(0, len(elems_in)))
-        }
+        elem_indices = {key: value for (key, value) in zip(elems_in, range(0, len(elems_in)))}
         return elems_in, elem_indices
 
     def vehicle_mode(self, vehicle_id: str) -> str:
@@ -55,8 +49,8 @@ class EventHandlerTool(Tool):
         :param vehicle_id: Vehicle ID string
         :return: Vehicle mode type string
         """
-        if vehicle_id in self.resources['transit_schedule'].veh_to_mode_map.keys():
-            return self.resources['transit_schedule'].veh_to_mode_map[vehicle_id]
+        if vehicle_id in self.resources["transit_schedule"].veh_to_mode_map.keys():
+            return self.resources["transit_schedule"].veh_to_mode_map[vehicle_id]
         else:
             return "car"
 
@@ -66,10 +60,10 @@ class EventHandlerTool(Tool):
         :param vehicle_id: Vehicle ID string
         :return: ID of the parent route
         """
-        if vehicle_id in self.resources['transit_schedule'].veh_to_route_map.keys():
-            return self.resources['transit_schedule'].veh_to_route_map.get(vehicle_id)
+        if vehicle_id in self.resources["transit_schedule"].veh_to_route_map.keys():
+            return self.resources["transit_schedule"].veh_to_route_map.get(vehicle_id)
         else:
-            return 'unknown_route'
+            return "unknown_route"
 
     def vehicle_capacity(self, vehicle_id: str) -> float:
         """
@@ -77,9 +71,9 @@ class EventHandlerTool(Tool):
         :param vehicle_id: Vehicle ID string
         :return: Vehicle capacity float
         """
-        if vehicle_id in self.resources['transit_vehicles'].veh_id_veh_type_map.keys():
-            veh_type = self.resources['transit_vehicles'].veh_id_veh_type_map[vehicle_id]
-            veh_capacity = self.resources['transit_vehicles'].veh_type_capacity_map[veh_type]
+        if vehicle_id in self.resources["transit_vehicles"].veh_id_veh_type_map.keys():
+            veh_type = self.resources["transit_vehicles"].veh_id_veh_type_map[vehicle_id]
+            veh_capacity = self.resources["transit_vehicles"].veh_type_capacity_map[veh_type]
             return veh_capacity
         else:
             return 5.0
@@ -111,9 +105,7 @@ class EventHandlerTool(Tool):
         """
         Remove zero-sum rows from all results dataframes.
         """
-        self.result_dfs = {
-            k: self.remove_empty_rows(df) for (k, df) in self.result_dfs.items()
-        }
+        self.result_dfs = {k: self.remove_empty_rows(df) for (k, df) in self.result_dfs.items()}
 
     def extract_attribute_values(self, attributes, attribute_key) -> set:
         """
@@ -121,9 +113,9 @@ class EventHandlerTool(Tool):
         Return available set of attribute values, inclusing None, eg {"old", "young", None}.
         """
         availability = attributes.attribute_key_availability(attribute_key)
-        self.logger.debug(f'availability of attribute {attribute_key} = {availability*100}%')
+        self.logger.debug(f"availability of attribute {attribute_key} = {availability*100}%")
         if availability < 1:
-            self.logger.warning(f'availability of attribute {attribute_key} = {availability*100}%')
+            self.logger.warning(f"availability of attribute {attribute_key} = {availability*100}%")
         return attributes.attribute_values(attribute_key) | {None}
 
     def extract_attributes(self) -> Tuple:
@@ -135,12 +127,12 @@ class EventHandlerTool(Tool):
             Tuple: (elara.inputs.Attributes, found_attributes)
         """
         if self.groupby_person_attribute:
-            attributes = self.resources['attributes']
+            attributes = self.resources["attributes"]
             found_attributes = self.extract_attribute_values(attributes, self.groupby_person_attribute)
         else:
             attributes = {}
             found_attributes = {None}
-        self.logger.debug(f'found attributes = {found_attributes}')
+        self.logger.debug(f"found attributes = {found_attributes}")
 
         return attributes, found_attributes
 
@@ -151,9 +143,9 @@ class VehiclePassengerGraph(EventHandlerTool):
     """
 
     requirements = [
-        'events',
-        'transit_vehicles',
-        'attributes',
+        "events",
+        "transit_vehicles",
+        "attributes",
     ]
 
     def __init__(self, config, mode="all", groupby_person_attribute=None, **kwargs) -> None:
@@ -204,7 +196,7 @@ class VehiclePassengerGraph(EventHandlerTool):
             veh_ident = elem.get("vehicle")
             veh_mode = self.vehicle_mode(veh_ident)
 
-            if veh_mode == 'car':  # can ignore cars
+            if veh_mode == "car":  # can ignore cars
                 return None
 
             # update veh occupancy
@@ -213,10 +205,7 @@ class VehiclePassengerGraph(EventHandlerTool):
             else:
                 for passenger in self.veh_occupancy[veh_ident]:
                     self.graph.add_edge(
-                        agent_id,
-                        passenger,
-                        mode=veh_mode,
-                        occupancy=len(self.veh_occupancy[veh_ident])
+                        agent_id, passenger, mode=veh_mode, occupancy=len(self.veh_occupancy[veh_ident])
                     )
 
                 self.veh_occupancy[veh_ident].append(agent_id)
@@ -237,9 +226,9 @@ class StopPassengerWaiting(EventHandlerTool):
     """
 
     requirements = [
-        'events',
-        'transit_schedule',
-        'attributes',
+        "events",
+        "transit_schedule",
+        "attributes",
     ]
 
     def __init__(self, config, mode="all", groupby_person_attribute=None, **kwargs) -> None:
@@ -270,14 +259,16 @@ class StopPassengerWaiting(EventHandlerTool):
         self.agent_attributes, _ = self.extract_attributes()
 
         csv_name = f"{str(self)}.csv"
-        self.waiting_time_log = self.start_csv_chunk_writer(csv_name, write_path=write_path, compression=self.compression)
+        self.waiting_time_log = self.start_csv_chunk_writer(
+            csv_name, write_path=write_path, compression=self.compression
+        )
 
     def process_event(self, elem) -> None:
         """
         :param elem: Event XML element
         """
         event_type = elem.get("type")
-        if event_type == 'waitingForPt':
+        if event_type == "waitingForPt":
             time = int(float(elem.get("time")))
             agent_id = elem.get("agent")
 
@@ -295,7 +286,7 @@ class StopPassengerWaiting(EventHandlerTool):
             veh_ident = elem.get("vehicle")
             veh_mode = self.vehicle_mode(veh_ident)
 
-            if veh_mode == 'car':  # can ignore cars
+            if veh_mode == "car":  # can ignore cars
                 return None
 
             # update veh occupancy
@@ -317,7 +308,7 @@ class StopPassengerWaiting(EventHandlerTool):
             stop = elem.get("facility")
 
             # get loc
-            point = self.resources['transit_schedule'].stop_gdf.loc[stop, 'geometry']
+            point = self.resources["transit_schedule"].stop_gdf.loc[stop, "geometry"]
             x, y = point.x, point.y
 
             for agent_id in self.veh_waiting_occupancy[veh_ident]:
@@ -334,15 +325,15 @@ class StopPassengerWaiting(EventHandlerTool):
                 # first waiting
                 vehicle_waiting_report.append(
                     {
-                        'agent_id': agent_id,
-                        'prev_mode': previous_mode,
-                        'mode': veh_mode,
-                        'stop': stop,
-                        'x': x,
-                        'y': y,
-                        'duration': waiting_time,
-                        'departure': time,
-                        self.groupby_person_attribute: agent_attribute
+                        "agent_id": agent_id,
+                        "prev_mode": previous_mode,
+                        "mode": veh_mode,
+                        "stop": stop,
+                        "x": x,
+                        "y": y,
+                        "duration": waiting_time,
+                        "departure": time,
+                        self.groupby_person_attribute: agent_attribute,
                     }
                 )
 
@@ -350,7 +341,7 @@ class StopPassengerWaiting(EventHandlerTool):
                 self.agent_status[agent_id] = [time, veh_mode]
 
             # clear veh_waiting_occupancy
-            self.veh_waiting_occupancy.pop('veh_ident', None)
+            self.veh_waiting_occupancy.pop("veh_ident", None)
 
             self.waiting_time_log.add(vehicle_waiting_report)
 
@@ -376,10 +367,10 @@ class LinkVehicleCounts(EventHandlerTool):
     """
 
     requirements = [
-        'events',
-        'network',
-        'transit_schedule',
-        'attributes',
+        "events",
+        "network",
+        "transit_schedule",
+        "attributes",
     ]
 
     def __init__(self, config, mode="all", groupby_person_attribute=None, **kwargs) -> None:
@@ -413,12 +404,12 @@ class LinkVehicleCounts(EventHandlerTool):
         # Initialise class attributes
         self.attributes, found_attributes = self.extract_attributes()
         self.classes, self.class_indices = self.generate_elem_ids(found_attributes)
-        self.logger.debug(f'available population {self.groupby_person_attribute} values = {self.classes}')
+        self.logger.debug(f"available population {self.groupby_person_attribute} values = {self.classes}")
 
         # generate index and map for network link dimension
-        self.elem_gdf = self.resources['network'].link_gdf
+        self.elem_gdf = self.resources["network"].link_gdf
 
-        links = resources['network'].mode_to_links_map.get(self.mode)
+        links = resources["network"].mode_to_links_map.get(self.mode)
         if links is None:
             self.logger.warning(
                 f"""
@@ -426,17 +417,15 @@ class LinkVehicleCounts(EventHandlerTool):
                 this may be because the Network modes do not match the configured
                 modes. Elara will continue with all links found in network.
                 """
-                )
+            )
         else:
-            self.logger.debug(f'Selecting links for mode:{self.mode}.')
+            self.logger.debug(f"Selecting links for mode:{self.mode}.")
             self.elem_gdf = self.elem_gdf.loc[links, :]
 
         self.elem_ids, self.elem_indices = self.generate_elem_ids(self.elem_gdf)
 
         # Initialise volume count table
-        self.counts = np.zeros((len(self.elem_indices),
-                                len(self.classes),
-                                self.config.time_periods))
+        self.counts = np.zeros((len(self.elem_indices), len(self.classes), self.config.time_periods))
 
     def process_event(self, elem) -> None:
         """
@@ -454,12 +443,7 @@ class LinkVehicleCounts(EventHandlerTool):
                 link = elem.get("link")
                 time = float(elem.get("time"))
                 x, y, z = table_position(
-                    self.elem_indices,
-                    self.class_indices,
-                    self.config.time_periods,
-                    link,
-                    attribute_class,
-                    time
+                    self.elem_indices, self.class_indices, self.config.time_periods, link, attribute_class, time
                 )
                 self.counts[x, y, z] += 1
 
@@ -480,20 +464,18 @@ class LinkVehicleCounts(EventHandlerTool):
         self.counts *= 1.0 / scale_factor
 
         if self.groupby_person_attribute:
-            names = ['elem', self.groupby_person_attribute, 'hour']
+            names = ["elem", self.groupby_person_attribute, "hour"]
             indexes = [self.elem_ids, self.classes, range(self.config.time_periods)]
             index = pd.MultiIndex.from_product(indexes, names=names)
             counts_df = pd.DataFrame(self.counts.flatten(), index=index)[0]
-            counts_df = counts_df.unstack(level='hour').sort_index()
+            counts_df = counts_df.unstack(level="hour").sort_index()
 
-            counts_df['total'] = counts_df.sum(1)
-            counts_df = counts_df.reset_index().set_index('elem')
+            counts_df["total"] = counts_df.sum(1)
+            counts_df = counts_df.reset_index().set_index("elem")
 
             key = f"{self.name}_{self.groupby_person_attribute}"
-            counts_df = self.elem_gdf.join(
-                counts_df, how="left"
-            )
-            counts_df.index = counts_df.index.set_names(['link_id'])
+            counts_df = self.elem_gdf.join(counts_df, how="left")
+            counts_df.index = counts_df.index.set_names(["link_id"])
             counts_df.reset_index(inplace=True)
 
             self.result_dfs[key] = counts_df
@@ -504,16 +486,14 @@ class LinkVehicleCounts(EventHandlerTool):
         totals_df = pd.DataFrame(
             data=self.counts, index=self.elem_ids, columns=range(0, self.config.time_periods)
         ).sort_index()
-        totals_df['total'] = totals_df.sum(1)
+        totals_df["total"] = totals_df.sum(1)
 
         del self.counts
 
         key = f"{self.name}"
 
-        totals_df = self.elem_gdf.join(
-            totals_df, how="left"
-        )
-        totals_df.index = totals_df.index.set_names(['link_id'])
+        totals_df = self.elem_gdf.join(totals_df, how="left")
+        totals_df.index = totals_df.index.set_names(["link_id"])
         totals_df.reset_index(inplace=True)
         self.result_dfs[key] = totals_df
 
@@ -524,13 +504,13 @@ class LinkVehicleCapacity(EventHandlerTool):
     """
 
     requirements = [
-        'events',
-        'network',
-        'transit_schedule',
-        'transit_vehicles',
-        'attributes',
+        "events",
+        "network",
+        "transit_schedule",
+        "transit_vehicles",
+        "attributes",
     ]
-    invalid_modes = ['car']
+    invalid_modes = ["car"]
 
     def __init__(self, config, mode="all", groupby_person_attribute=None, **kwargs) -> None:
         """
@@ -561,36 +541,34 @@ class LinkVehicleCapacity(EventHandlerTool):
         super().build(resources, write_path=write_path)
 
         # Check for car
-        if self.mode == 'car':
+        if self.mode == "car":
             raise ValueError("This handler not intended for use with mode type = car")
 
         # Initialise class attributes
         self.attributes, found_attributes = self.extract_attributes()
         self.classes, self.class_indices = self.generate_elem_ids(found_attributes)
-        self.logger.debug(f'available population {self.groupby_person_attribute} values = {self.classes}')
+        self.logger.debug(f"available population {self.groupby_person_attribute} values = {self.classes}")
 
         # generate index and map for network link dimension
-        self.elem_gdf = self.resources['network'].link_gdf
+        self.elem_gdf = self.resources["network"].link_gdf
 
-        links = resources['network'].mode_to_links_map.get(self.mode)
+        links = resources["network"].mode_to_links_map.get(self.mode)
         if links is None:
             self.logger.warning(
-f"""
+                f"""
 No viable links found for mode:{self.mode} in Network,
 this may be because the Network modes do not match the configured
 modes. Elara will continue with all links found in network.
 """
-                )
+            )
         else:
-            self.logger.debug(f'Selecting links for mode:{self.mode}.')
+            self.logger.debug(f"Selecting links for mode:{self.mode}.")
             self.elem_gdf = self.elem_gdf.loc[links, :]
 
         self.elem_ids, self.elem_indices = self.generate_elem_ids(self.elem_gdf)
 
         # Initialise volume count table
-        self.counts = np.zeros((len(self.elem_indices),
-                                len(self.classes),
-                                self.config.time_periods))
+        self.counts = np.zeros((len(self.elem_indices), len(self.classes), self.config.time_periods))
 
     def process_event(self, elem) -> None:
         """
@@ -609,12 +587,7 @@ modes. Elara will continue with all links found in network.
                 time = float(elem.get("time"))
                 veh_capacity = self.vehicle_capacity(ident)
                 x, y, z = table_position(
-                    self.elem_indices,
-                    self.class_indices,
-                    self.config.time_periods,
-                    link,
-                    attribute_class,
-                    time
+                    self.elem_indices, self.class_indices, self.config.time_periods, link, attribute_class, time
                 )
                 self.counts[x, y, z] += veh_capacity
 
@@ -635,20 +608,18 @@ modes. Elara will continue with all links found in network.
         self.counts *= 1.0 / scale_factor
 
         if self.groupby_person_attribute:
-            names = ['elem', self.groupby_person_attribute, 'hour']
+            names = ["elem", self.groupby_person_attribute, "hour"]
             indexes = [self.elem_ids, self.classes, range(self.config.time_periods)]
             index = pd.MultiIndex.from_product(indexes, names=names)
             counts_df = pd.DataFrame(self.counts.flatten(), index=index)[0]
-            counts_df = counts_df.unstack(level='hour').sort_index()
-            counts_df = counts_df.reset_index().set_index(['elem', self.groupby_person_attribute])
+            counts_df = counts_df.unstack(level="hour").sort_index()
+            counts_df = counts_df.reset_index().set_index(["elem", self.groupby_person_attribute])
 
-            counts_df['total'] = counts_df.sum(1)
-            counts_df = counts_df.reset_index().set_index('elem')
+            counts_df["total"] = counts_df.sum(1)
+            counts_df = counts_df.reset_index().set_index("elem")
 
             key = f"{self.name}_{self.groupby_person_attribute}"
-            counts_df = self.elem_gdf.join(
-                counts_df, how="left"
-            )
+            counts_df = self.elem_gdf.join(counts_df, how="left")
             self.result_dfs[key] = counts_df
 
         # calc sum across all recorded attribute classes
@@ -657,14 +628,12 @@ modes. Elara will continue with all links found in network.
         totals_df = pd.DataFrame(
             data=self.counts, index=self.elem_ids, columns=range(0, self.config.time_periods)
         ).sort_index()
-        totals_df['total'] = totals_df.sum(1)
+        totals_df["total"] = totals_df.sum(1)
 
         del self.counts
 
         key = f"{self.name}"
-        totals_df = self.elem_gdf.join(
-            totals_df, how="left"
-        )
+        totals_df = self.elem_gdf.join(totals_df, how="left")
         self.result_dfs[key] = totals_df
 
 
@@ -674,10 +643,10 @@ class LinkVehicleSpeeds(EventHandlerTool):
     """
 
     requirements = [
-        'events',
-        'network',
-        'transit_schedule',
-        'attributes',
+        "events",
+        "network",
+        "transit_schedule",
+        "attributes",
     ]
 
     def __init__(self, config, mode="all", groupby_person_attribute=None, **kwargs) -> None:
@@ -711,30 +680,28 @@ class LinkVehicleSpeeds(EventHandlerTool):
         # Initialise class attributes
         self.attributes, found_attributes = self.extract_attributes()
         self.classes, self.class_indices = self.generate_elem_ids(found_attributes)
-        self.logger.debug(f'available population {self.groupby_person_attribute} values = {self.classes}')
+        self.logger.debug(f"available population {self.groupby_person_attribute} values = {self.classes}")
 
         # generate index and map for network link dimension
-        self.elem_gdf = self.resources['network'].link_gdf
+        self.elem_gdf = self.resources["network"].link_gdf
 
-        links = resources['network'].mode_to_links_map.get(self.mode)
+        links = resources["network"].mode_to_links_map.get(self.mode)
         if links is None:
             self.logger.warning(
-f"""
+                f"""
 No viable links found for mode:{self.mode} in Network,
 this may be because the Network modes do not match the configured
 modes. Elara will continue with all links found in network.
 """
-                )
+            )
         else:
-            self.logger.debug(f'Selecting links for mode:{self.mode}.')
+            self.logger.debug(f"Selecting links for mode:{self.mode}.")
             self.elem_gdf = self.elem_gdf.loc[links, :]
 
         self.elem_ids, self.elem_indices = self.generate_elem_ids(self.elem_gdf)
 
         # Initialise volume count table
-        self.counts = np.zeros((len(self.elem_indices),
-                                len(self.classes),
-                                self.config.time_periods))
+        self.counts = np.zeros((len(self.elem_indices), len(self.classes), self.config.time_periods))
 
         # Initialise duration cummulative sum table
         self.duration_sum = np.zeros((len(self.elem_indices), len(self.classes), self.config.time_periods))
@@ -810,7 +777,7 @@ modes. Elara will continue with all links found in network.
                         self.config.time_periods,
                         link,
                         attribute_class,
-                        start_time
+                        start_time,
                     )
 
                     duration = end_time - start_time
@@ -837,18 +804,31 @@ modes. Elara will continue with all links found in network.
 
         mps_to_kph = 3.6
 
-        def calc_average_speed(self, counts_link:pd.DataFrame, duration_link:pd.DataFrame)->pd.DataFrame:
+        def calc_average_speed(self, counts_link: pd.DataFrame, duration_link: pd.DataFrame) -> pd.DataFrame:
             """
             Calculate link average speed.
+            Time Mean Speed
             Average speed = (total distance travelled) / (total travel duration) =
                             (n * link_distance) / sum(travel duration)
+            Space Mean Speed
+            Average speed = link distance / (sum(travel duration)/ n)
             """
             # number of vehicles divided by the total travel time on the link (n/Σ(t_i))
-            average_speeds = np.divide(counts_link, duration_link, out=np.zeros_like(duration_link), where=duration_link != 0).fillna(0)
+            # Time Mean Speed
+            average_speeds = np.divide(
+                counts_link, duration_link, out=np.zeros_like(duration_link), where=duration_link != 0
+            ).fillna(0)
+            # Space Mean Speed
+            # average_speeds = np.divide(
+            #     duration_link, counts_link, out=np.zeros_like(duration_link), where=duration_link != 0
+            # ).fillna(0)
 
             # multiply by link distances to derive average speed
-            average_speeds = self.elem_gdf.join(average_speeds.reset_index().set_index('elem'), how="left")
+            average_speeds = self.elem_gdf.join(average_speeds.reset_index().set_index("elem"), how="left")
+            # Time Mean Speed
             average_speeds = multiply_distance(self, average_speeds)
+            # Space Mean Speed
+            # average_speeds = divide_distance(self, average_speeds)
 
             return average_speeds
 
@@ -873,11 +853,19 @@ modes. Elara will continue with all links found in network.
             return [min_subpop, min_pop]
 
         def flatten_subpops(self, subpop_matrix):
-            names = ['elem', 'class', 'hour']
+            names = ["elem", "class", "hour"]
             indexes = [self.elem_ids, self.classes, range(self.config.time_periods)]
             index = pd.MultiIndex.from_product(indexes, names=names)
             df = pd.DataFrame(subpop_matrix.flatten(), index=index)[0]
-            df = df.unstack(level='hour').sort_index()
+            df = df.unstack(level="hour").sort_index()
+            return df
+
+        def divide_distance(self, df):
+            """
+            Multiplies time period columns (ie hour 0...23) by link length
+            """
+            for i in range(self.config.time_periods):
+                df[i] = df["length"] / df[i]
             return df
 
         def multiply_distance(self, df):
@@ -901,13 +889,17 @@ modes. Elara will continue with all links found in network.
         # Calc average speed at population level
         key = f"{self.name}_average"
         # total link counts by hour
-        counts_link_pop = pd.DataFrame(
-            data=self.counts.sum(1), index=self.elem_ids, columns=range(0, self.config.time_periods)
-            ).sort_index().rename_axis('elem')
+        counts_link_pop = (
+            pd.DataFrame(data=self.counts.sum(1), index=self.elem_ids, columns=range(0, self.config.time_periods))
+            .sort_index()
+            .rename_axis("elem")
+        )
         # sum of link travel duration by hour
-        duration_link_pop = pd.DataFrame(
-            data=self.duration_sum.sum(1), index=self.elem_ids, columns=range(0, self.config.time_periods)
-            ).sort_index().rename_axis('elem')
+        duration_link_pop = (
+            pd.DataFrame(data=self.duration_sum.sum(1), index=self.elem_ids, columns=range(0, self.config.time_periods))
+            .sort_index()
+            .rename_axis("elem")
+        )
 
         average_speeds = calc_average_speed(self, counts_link_pop, duration_link_pop)
         self.result_dfs[key] = average_speeds
@@ -915,7 +907,7 @@ modes. Elara will continue with all links found in network.
         if self.groupby_person_attribute:
             # Calc max at subpop level
             key = f"{self.name}_max_{self.groupby_person_attribute}"
-            max_speeds = flatten_subpops(self, calc_max_matrices(self)[0]).reset_index().set_index('elem')
+            max_speeds = flatten_subpops(self, calc_max_matrices(self)[0]).reset_index().set_index("elem")
             max_speeds = self.elem_gdf.join(max_speeds, how="left")
             max_speeds = multiply_distance(self, max_speeds)
             max_speeds.index.name = "id"
@@ -925,8 +917,8 @@ modes. Elara will continue with all links found in network.
         key = f"{self.name}_max"
         max_speeds = calc_max_matrices(self)[1]
         max_speeds = pd.DataFrame(
-                data=max_speeds, index=self.elem_ids, columns=range(0, self.config.time_periods)
-            ).sort_index()
+            data=max_speeds, index=self.elem_ids, columns=range(0, self.config.time_periods)
+        ).sort_index()
         max_speeds = self.elem_gdf.join(max_speeds, how="left")
         max_speeds = multiply_distance(self, max_speeds)
         self.result_dfs[key] = max_speeds
@@ -935,7 +927,7 @@ modes. Elara will continue with all links found in network.
             # Calc min at subpop level
             key = f"{self.name}_min_{self.groupby_person_attribute}"
             min_matrix = calc_min_matrices(self)[0]
-            min_speeds = flatten_subpops(self, min_matrix).reset_index().set_index('elem')
+            min_speeds = flatten_subpops(self, min_matrix).reset_index().set_index("elem")
             min_speeds = self.elem_gdf.join(min_speeds, how="left")
             min_speeds = multiply_distance(self, min_speeds)
             min_speeds.index.name = "id"
@@ -945,8 +937,8 @@ modes. Elara will continue with all links found in network.
         key = f"{self.name}_min"
         min_speeds = calc_min_matrices(self)[1]
         min_speeds = pd.DataFrame(
-                data=min_speeds, index=self.elem_ids, columns=range(0, self.config.time_periods)
-            ).sort_index()
+            data=min_speeds, index=self.elem_ids, columns=range(0, self.config.time_periods)
+        ).sort_index()
         min_speeds = self.elem_gdf.join(min_speeds, how="left")
         min_speeds = multiply_distance(self, min_speeds)
         self.result_dfs[key] = min_speeds
@@ -956,18 +948,19 @@ modes. Elara will continue with all links found in network.
             data_columns = [i for i in range(0, self.config.time_periods)]
             self.result_dfs[result].loc[:, data_columns] *= mps_to_kph
 
+
 class LinkPassengerCounts(EventHandlerTool):
     """
     Build Passenger Counts on links for given mode in mode vehicles.
     """
 
     requirements = [
-        'events',
-        'network',
-        'transit_schedule',
-        'attributes',
+        "events",
+        "network",
+        "transit_schedule",
+        "attributes",
     ]
-    invalid_modes = ['car']
+    invalid_modes = ["car"]
 
     def __init__(self, config, mode="all", groupby_person_attribute=None, **kwargs):
         """
@@ -999,36 +992,34 @@ class LinkPassengerCounts(EventHandlerTool):
         super().build(resources, write_path=write_path)
 
         # Check for car
-        if self.mode == 'car':
+        if self.mode == "car":
             raise ValueError("Passenger Counts Handlers not intended for use with mode type = car")
 
         # Initialise class attributes
         self.attributes, found_attributes = self.extract_attributes()
         self.classes, self.class_indices = self.generate_elem_ids(found_attributes)
-        self.logger.debug(f'available population {self.groupby_person_attribute} values = {self.classes}')
+        self.logger.debug(f"available population {self.groupby_person_attribute} values = {self.classes}")
 
         # Initialise element attributes
-        self.elem_gdf = resources['network'].link_gdf
+        self.elem_gdf = resources["network"].link_gdf
 
-        links = resources['network'].mode_to_links_map.get(self.mode)
+        links = resources["network"].mode_to_links_map.get(self.mode)
         if links is None:
             self.logger.warning(
-f"""
+                f"""
 No viable links found for mode:{self.mode} in Network,
 this may be because the Network modes do not match the configured
 modes. Elara will continue with all links found in network.
 """
-                )
+            )
         else:
-            self.logger.debug(f'Selecting links for mode:{self.mode}.')
+            self.logger.debug(f"Selecting links for mode:{self.mode}.")
             self.elem_gdf = self.elem_gdf.loc[links, :]
 
         self.elem_ids, self.elem_indices = self.generate_elem_ids(self.elem_gdf)
 
         # Initialise passenger count table
-        self.counts = np.zeros((len(self.elem_ids),
-                                len(self.classes),
-                                self.config.time_periods))
+        self.counts = np.zeros((len(self.elem_ids), len(self.classes), self.config.time_periods))
 
         # Initialise vehicle occupancy mapping
         self.veh_occupancy = dict()  # vehicle_id : occupancy
@@ -1107,12 +1098,7 @@ modes. Elara will continue with all links found in network.
 
                 for attribute_class, occupancy in occupancy_dict.items():
                     x, y, z = table_position(
-                        self.elem_indices,
-                        self.class_indices,
-                        self.config.time_periods,
-                        link,
-                        attribute_class,
-                        time
+                        self.elem_indices, self.class_indices, self.config.time_periods, link, attribute_class, time
                     )
                     self.counts[x, y, z] += occupancy
 
@@ -1127,18 +1113,16 @@ modes. Elara will continue with all links found in network.
         self.counts *= 1.0 / self.config.scale_factor
 
         if self.groupby_person_attribute:
-            names = ['elem', self.groupby_person_attribute, 'hour']
+            names = ["elem", self.groupby_person_attribute, "hour"]
             indexes = [self.elem_ids, self.classes, range(self.config.time_periods)]
             index = pd.MultiIndex.from_product(indexes, names=names)
             counts_df = pd.DataFrame(self.counts.flatten(), index=index)[0]
-            counts_df = counts_df.unstack(level='hour').sort_index()
-            counts_df = counts_df.reset_index().set_index(['elem', self.groupby_person_attribute])
-            counts_df['total'] = counts_df.sum(1)
-            counts_df = counts_df.reset_index().set_index('elem')
+            counts_df = counts_df.unstack(level="hour").sort_index()
+            counts_df = counts_df.reset_index().set_index(["elem", self.groupby_person_attribute])
+            counts_df["total"] = counts_df.sum(1)
+            counts_df = counts_df.reset_index().set_index("elem")
             key = f"{self.name}_{self.groupby_person_attribute}"
-            counts_df = self.elem_gdf.join(
-                counts_df, how="left"
-            )
+            counts_df = self.elem_gdf.join(counts_df, how="left")
             self.result_dfs[key] = counts_df
 
         # calc sum across all recorded attribute classes
@@ -1147,14 +1131,12 @@ modes. Elara will continue with all links found in network.
         totals_df = pd.DataFrame(
             data=self.counts, index=self.elem_ids, columns=range(0, self.config.time_periods)
         ).sort_index()
-        totals_df['total'] = totals_df.sum(1)
+        totals_df["total"] = totals_df.sum(1)
 
         del self.counts
 
         key = f"{self.name}"
-        totals_df = self.elem_gdf.join(
-            totals_df, how="left"
-        )
+        totals_df = self.elem_gdf.join(totals_df, how="left")
         self.result_dfs[key] = totals_df
 
 
@@ -1162,13 +1144,14 @@ class RoutePassengerCounts(EventHandlerTool):
     """
     Build Passenger Counts per transit route for given mode.
     """
+
     requirements = [
-        'events',
-        'network',
-        'transit_schedule',
-        'attributes',
+        "events",
+        "network",
+        "transit_schedule",
+        "attributes",
     ]
-    invalid_modes = ['car']
+    invalid_modes = ["car"]
 
     def __init__(self, config, mode="all", groupby_person_attribute=None, **kwargs):
         """
@@ -1202,28 +1185,26 @@ class RoutePassengerCounts(EventHandlerTool):
         # Initialise class attributes
         self.attributes, found_attributes = self.extract_attributes()
         self.classes, self.class_indices = self.generate_elem_ids(found_attributes)
-        self.logger.debug(f'available population {self.groupby_person_attribute} values = {self.classes}')
+        self.logger.debug(f"available population {self.groupby_person_attribute} values = {self.classes}")
 
         # # Initialise element attributes
         # all_routes = set(resources['transit_schedule'].veh_to_route_map.values())
         # get routes used by this mode
-        self.logger.debug(f'Selecting routes for mode:{self.mode}.')
-        routes = resources['transit_schedule'].mode_to_routes_map.get(self.mode)
+        self.logger.debug(f"Selecting routes for mode:{self.mode}.")
+        routes = resources["transit_schedule"].mode_to_routes_map.get(self.mode)
         if routes is None:
             self.logger.warning(
-f"""
+                f"""
 No viable routes found for mode:{self.mode} in TransitSchedule,
 this may be because the Schedule modes do not match the configured
 modes. Elara will continue with all routes found in schedule.
 """
-                )
+            )
 
         self.elem_ids, self.elem_indices = self.generate_elem_ids(list(routes))
 
         # Initialise passenger count table
-        self.counts = np.zeros((len(self.elem_ids),
-                                len(self.classes),
-                                self.config.time_periods))
+        self.counts = np.zeros((len(self.elem_ids), len(self.classes), self.config.time_periods))
 
         self.route_occupancy = dict()
 
@@ -1302,7 +1283,7 @@ modes. Elara will continue with all routes found in schedule.
                         self.config.time_periods,
                         veh_route,
                         attribute_class,
-                        time
+                        time,
                     )
                     self.counts[x, y, z] += occupancy
 
@@ -1319,12 +1300,12 @@ modes. Elara will continue with all routes found in schedule.
         self.counts *= 1.0 / self.config.scale_factor
 
         if self.groupby_person_attribute:
-            names = ['elem', self.groupby_person_attribute, 'hour']
+            names = ["elem", self.groupby_person_attribute, "hour"]
             indexes = [self.elem_ids, self.classes, range(self.config.time_periods)]
             index = pd.MultiIndex.from_product(indexes, names=names)
             counts_df = pd.DataFrame(self.counts.flatten(), index=index)[0]
-            counts_df = counts_df.unstack(level='hour').sort_index()
-            counts_df = counts_df.reset_index().set_index('elem')
+            counts_df = counts_df.unstack(level="hour").sort_index()
+            counts_df = counts_df.reset_index().set_index("elem")
 
             # Create volume counts output
             key = f"{self.name}_{self.groupby_person_attribute}"
@@ -1349,12 +1330,12 @@ class StopPassengerCounts(EventHandlerTool):
     """
 
     requirements = [
-        'events',
-        'network',
-        'transit_schedule',
-        'attributes',
+        "events",
+        "network",
+        "transit_schedule",
+        "attributes",
     ]
-    invalid_modes = ['car']
+    invalid_modes = ["car"]
 
     def __init__(self, config, mode="all", groupby_person_attribute=None, **kwargs):
         """
@@ -1386,18 +1367,18 @@ class StopPassengerCounts(EventHandlerTool):
         super().build(resources, write_path=write_path)
 
         # Check for car
-        if self.mode == 'car':
+        if self.mode == "car":
             raise ValueError("Stop Interaction Handlers not intended for use with mode type = car")
 
         # Initialise class attributes
         self.attributes, found_attributes = self.extract_attributes()
         self.classes, self.class_indices = self.generate_elem_ids(found_attributes)
-        self.logger.debug(f'available population {self.groupby_person_attribute} values = {self.classes}')
+        self.logger.debug(f"available population {self.groupby_person_attribute} values = {self.classes}")
 
         # Initialise element attributes
-        self.elem_gdf = resources['transit_schedule'].stop_gdf
+        self.elem_gdf = resources["transit_schedule"].stop_gdf
         # get stops used by this mode
-        viable_stops = resources['transit_schedule'].mode_to_stops_map.get(self.mode)
+        viable_stops = resources["transit_schedule"].mode_to_stops_map.get(self.mode)
 
         if viable_stops is None:
             self.logger.warning(
@@ -1406,20 +1387,16 @@ class StopPassengerCounts(EventHandlerTool):
                 this may be because the Schedule modes do not match the configured
                 modes. Elara will continue with all stops found in schedule.
                 """
-                )
+            )
         else:
-            self.logger.debug(f'Filtering stops for mode:{self.mode}.')
+            self.logger.debug(f"Filtering stops for mode:{self.mode}.")
             self.elem_gdf = self.elem_gdf.loc[viable_stops, :]
 
         self.elem_ids, self.elem_indices = self.generate_elem_ids(self.elem_gdf)
 
         # Initialise results tables
-        self.boardings = np.zeros((len(self.elem_indices),
-                                   len(self.class_indices),
-                                   self.config.time_periods))
-        self.alightings = np.zeros((len(self.elem_indices),
-                                    len(self.class_indices),
-                                    self.config.time_periods))
+        self.boardings = np.zeros((len(self.elem_indices), len(self.class_indices), self.config.time_periods))
+        self.alightings = np.zeros((len(self.elem_indices), len(self.class_indices), self.config.time_periods))
 
         # Initialise agent status mapping
         self.agent_status = dict()  # agent_id : [origin_stop, destination_stop]
@@ -1454,7 +1431,7 @@ class StopPassengerCounts(EventHandlerTool):
                         self.config.time_periods,
                         origin_stop,
                         attribute_class,
-                        time
+                        time,
                     )
                     self.boardings[x, y, z] += 1
 
@@ -1474,7 +1451,7 @@ class StopPassengerCounts(EventHandlerTool):
                         self.config.time_periods,
                         destination_stop,
                         attribute_class,
-                        time
+                        time,
                     )
                     self.alightings[x, y, z] += 1
                     self.agent_status.pop(agent_id, None)
@@ -1492,23 +1469,21 @@ class StopPassengerCounts(EventHandlerTool):
         self.alightings *= 1.0 / self.config.scale_factor
 
         # Create passenger counts output
-        for data, direction in zip([self.boardings, self.alightings], ['boardings', 'alightings']):
+        for data, direction in zip([self.boardings, self.alightings], ["boardings", "alightings"]):
 
             if self.groupby_person_attribute:
-                names = ['elem', self.groupby_person_attribute, 'hour']
+                names = ["elem", self.groupby_person_attribute, "hour"]
                 indexes = [self.elem_ids, self.classes, range(self.config.time_periods)]
                 index = pd.MultiIndex.from_product(indexes, names=names)
                 counts_df = pd.DataFrame(data.flatten(), index=index)[0]
-                counts_df = counts_df.unstack(level='hour').sort_index()
-                counts_df = counts_df.reset_index().set_index(['elem', self.groupby_person_attribute])
-                counts_df['total'] = counts_df.sum(1)
-                counts_df = counts_df.reset_index().set_index('elem')
+                counts_df = counts_df.unstack(level="hour").sort_index()
+                counts_df = counts_df.reset_index().set_index(["elem", self.groupby_person_attribute])
+                counts_df["total"] = counts_df.sum(1)
+                counts_df = counts_df.reset_index().set_index("elem")
 
                 # Create volume counts output
                 key = f"{self.name}_{direction}_{self.groupby_person_attribute}"
-                counts_df = self.elem_gdf.join(
-                    counts_df, how="left"
-                )
+                counts_df = self.elem_gdf.join(counts_df, how="left")
                 self.result_dfs[key] = counts_df
 
             # calc sum across all recorded attribute classes
@@ -1517,14 +1492,12 @@ class StopPassengerCounts(EventHandlerTool):
             totals_df = pd.DataFrame(
                 data=data, index=self.elem_ids, columns=range(0, self.config.time_periods)
             ).sort_index()
-            totals_df['total'] = totals_df.sum(1)
+            totals_df["total"] = totals_df.sum(1)
 
             del data
 
             key = f"{self.name}_{direction}"
-            totals_df = self.elem_gdf.join(
-                totals_df, how="left"
-            )
+            totals_df = self.elem_gdf.join(totals_df, how="left")
             self.result_dfs[key] = totals_df
 
 
@@ -1534,12 +1507,12 @@ class StopToStopPassengerCounts(EventHandlerTool):
     """
 
     requirements = [
-        'events',
-        'network',
-        'transit_schedule',
-        'attributes',
+        "events",
+        "network",
+        "transit_schedule",
+        "attributes",
     ]
-    invalid_modes = ['car']
+    invalid_modes = ["car"]
 
     def __init__(self, config, mode="all", groupby_person_attribute=None, **kwargs):
         """
@@ -1570,39 +1543,36 @@ class StopToStopPassengerCounts(EventHandlerTool):
         super().build(resources, write_path=write_path)
 
         # Check for car
-        if self.mode in ['car', 'walk', 'bike']:
+        if self.mode in ["car", "walk", "bike"]:
             raise ValueError(f"Passenger Counts Handlers not intended for use with mode type = {self.mode}")
 
         # Initialise class attributes
         self.attributes, found_attributes = self.extract_attributes()
         self.classes, self.class_indices = self.generate_elem_ids(found_attributes)
-        self.logger.debug(f'available population {self.groupby_person_attribute} values = {self.classes}')
+        self.logger.debug(f"available population {self.groupby_person_attribute} values = {self.classes}")
 
         # Initialise element attributes
-        self.elem_gdf = resources['transit_schedule'].stop_gdf
+        self.elem_gdf = resources["transit_schedule"].stop_gdf
         # get stops used by this mode
-        viable_stops = resources['transit_schedule'].mode_to_stops_map.get(self.mode)
+        viable_stops = resources["transit_schedule"].mode_to_stops_map.get(self.mode)
         if viable_stops is None:
             self.logger.warning(
-f"""
+                f"""
 No viable stops found for mode:{self.mode} in TransitSchedule,
 this may be because the Schedule modes do not match the configured
 modes. Elara will continue with all stops found in schedule.
 """
-                )
+            )
         else:
-            self.logger.debug(f'Filtering stops for mode:{self.mode}.')
+            self.logger.debug(f"Filtering stops for mode:{self.mode}.")
             self.elem_gdf = self.elem_gdf.loc[viable_stops, :]
 
         self.elem_ids, self.elem_indices = self.generate_elem_ids(self.elem_gdf)
 
         # Initialise results tablescd
-        self.counts = np.zeros((
-            len(self.elem_indices),
-            len(self.elem_indices),
-            len(self.class_indices),
-            self.config.time_periods
-            ))
+        self.counts = np.zeros(
+            (len(self.elem_indices), len(self.elem_indices), len(self.class_indices), self.config.time_periods)
+        )
 
         # Initialise agent status mapping
         self.veh_occupancy = dict()  # {veh_id : {attribute_class: COUNT}}
@@ -1667,7 +1637,7 @@ modes. Elara will continue with all stops found in schedule.
             veh_mode = self.vehicle_mode(veh_id)
 
             if veh_mode == self.mode:
-                stop_id = elem.get('facility')
+                stop_id = elem.get("facility")
                 prev_stop_id = self.veh_tracker.get(veh_id, None)
                 self.veh_tracker[veh_id] = stop_id
 
@@ -1684,7 +1654,7 @@ modes. Elara will continue with all stops found in schedule.
                             prev_stop_id,
                             stop_id,
                             attribute_class,
-                            time
+                            time,
                         )
                         self.counts[o, d, y, z] += occupancy
 
@@ -1700,7 +1670,7 @@ modes. Elara will continue with all stops found in schedule.
         # Scale final counts
         self.counts *= 1.0 / self.config.scale_factor
 
-        names = ['origin', 'destination', str(self.groupby_person_attribute), 'hour']
+        names = ["origin", "destination", str(self.groupby_person_attribute), "hour"]
         self.classes = [str(c) for c in self.classes]
         indexes = [self.elem_ids, self.elem_ids, self.classes, range(self.config.time_periods)]
         index = pd.MultiIndex.from_product(indexes, names=names)
@@ -1708,28 +1678,26 @@ modes. Elara will continue with all stops found in schedule.
 
         del self.counts
 
-        counts_df = counts_df.unstack(level='hour').sort_index()
+        counts_df = counts_df.unstack(level="hour").sort_index()
 
         # Join stop data and build geometry
         for n in ("origin", "destination"):
             counts_df = counts_df.reset_index().set_index(n)
             stop_info = self.elem_gdf.copy()
             stop_info.columns = [f"{n}_{c}" for c in stop_info.columns]
-            counts_df = counts_df.join(
-                    stop_info, how="left"
-                )
+            counts_df = counts_df.join(stop_info, how="left")
 
             counts_df.index.name = n
 
-        counts_df = counts_df.reset_index().set_index(['origin', 'destination', str(self.groupby_person_attribute)])
-        counts_df['total'] = counts_df.sum(1)
+        counts_df = counts_df.reset_index().set_index(["origin", "destination", str(self.groupby_person_attribute)])
+        counts_df["total"] = counts_df.sum(1)
 
-        counts_df['geometry'] = [
+        counts_df["geometry"] = [
             LineString([o, d]) for o, d in zip(counts_df.origin_geometry, counts_df.destination_geometry)
         ]
-        counts_df.drop('origin_geometry', axis=1, inplace=True)
-        counts_df.drop('destination_geometry', axis=1, inplace=True)
-        counts_df = gpd.GeoDataFrame(counts_df, geometry='geometry')
+        counts_df.drop("origin_geometry", axis=1, inplace=True)
+        counts_df.drop("destination_geometry", axis=1, inplace=True)
+        counts_df = gpd.GeoDataFrame(counts_df, geometry="geometry")
 
         if self.groupby_person_attribute:
             key = f"{self.name}_{self.groupby_person_attribute}"
@@ -1738,30 +1706,32 @@ modes. Elara will continue with all stops found in schedule.
         # TODO make below pandas ops more efficient
 
         # calc sum across all recorded attribute classes
-        totals_df = counts_df.reset_index().groupby(
-            ['origin', 'destination']
-            ).sum().reset_index().set_index(['origin', 'destination'])
+        totals_df = (
+            counts_df.reset_index()
+            .groupby(["origin", "destination"])
+            .sum()
+            .reset_index()
+            .set_index(["origin", "destination"])
+        )
 
         # Join stop data and build geometry
         for n in ("origin", "destination"):
             totals_df = totals_df.reset_index().set_index(n)
             stop_info = self.elem_gdf.copy()
             stop_info.columns = [f"{n}_{c}" for c in stop_info.columns]
-            totals_df = totals_df.join(
-                    stop_info, how="left"
-                )
+            totals_df = totals_df.join(stop_info, how="left")
             totals_df.index.name = n
 
-        totals_df = totals_df.reset_index().set_index(['origin', 'destination'])
+        totals_df = totals_df.reset_index().set_index(["origin", "destination"])
 
-        totals_df['geometry'] = [
+        totals_df["geometry"] = [
             LineString([o, d]) for o, d in zip(totals_df.origin_geometry, totals_df.destination_geometry)
         ]
-        totals_df.drop('origin_geometry', axis=1, inplace=True)
-        totals_df.drop('destination_geometry', axis=1, inplace=True)
-        totals_df = gpd.GeoDataFrame(totals_df, geometry='geometry')
+        totals_df.drop("origin_geometry", axis=1, inplace=True)
+        totals_df.drop("destination_geometry", axis=1, inplace=True)
+        totals_df = gpd.GeoDataFrame(totals_df, geometry="geometry")
 
-        totals_df = gpd.GeoDataFrame(totals_df, geometry='geometry')
+        totals_df = gpd.GeoDataFrame(totals_df, geometry="geometry")
         key = f"{self.name}"
         self.result_dfs[key] = totals_df
 
@@ -1772,12 +1742,12 @@ class VehicleStopToStopPassengerCounts(EventHandlerTool):
     """
 
     requirements = [
-        'events',
-        'network',
-        'transit_schedule',
-        'attributes',
+        "events",
+        "network",
+        "transit_schedule",
+        "attributes",
     ]
-    invalid_modes = ['car']
+    invalid_modes = ["car"]
 
     def __init__(self, config, mode="all", groupby_person_attribute=None, **kwargs):
         """
@@ -1808,35 +1778,35 @@ class VehicleStopToStopPassengerCounts(EventHandlerTool):
         super().build(resources, write_path=write_path)
 
         # Check for car
-        if self.mode in ['car', 'walk', 'bike']:
+        if self.mode in ["car", "walk", "bike"]:
             raise ValueError(f"Passenger Counts Handlers not intended for use with mode type = {self.mode}")
 
         # Initialise class attributes
         self.attributes, found_attributes = self.extract_attributes()
         self.classes, self.class_indices = self.generate_elem_ids(found_attributes)
-        self.logger.debug(f'available population {self.groupby_person_attribute} values = {self.classes}')
+        self.logger.debug(f"available population {self.groupby_person_attribute} values = {self.classes}")
 
         # Get vehicle IDs and generate vehicle indices
-        veh_ids_list = resources['transit_schedule'].mode_to_veh_map.get(self.mode)
+        veh_ids_list = resources["transit_schedule"].mode_to_veh_map.get(self.mode)
         self.veh_ids, self.veh_ids_indices = self.generate_elem_ids(veh_ids_list)
 
         # Vehicle --> route map
-        self.veh_route = resources['transit_schedule'].veh_to_route_map
+        self.veh_route = resources["transit_schedule"].veh_to_route_map
 
         # Initialise element attributes
-        self.elem_gdf = resources['transit_schedule'].stop_gdf
+        self.elem_gdf = resources["transit_schedule"].stop_gdf
         # get stops used by this mode
-        viable_stops = resources['transit_schedule'].mode_to_stops_map.get(self.mode)
+        viable_stops = resources["transit_schedule"].mode_to_stops_map.get(self.mode)
         if viable_stops is None:
             self.logger.warning(
-f"""
+                f"""
 No viable stops found for mode:{self.mode} in TransitSchedule,
 this may be because the Schedule modes do not match the configured
 modes. Elara will continue with all stops found in schedule.
 """
-                )
+            )
         else:
-            self.logger.debug(f'Filtering stops for mode:{self.mode}.')
+            self.logger.debug(f"Filtering stops for mode:{self.mode}.")
             self.elem_gdf = self.elem_gdf.loc[viable_stops, :]
 
         self.elem_ids, self.elem_indices = self.generate_elem_ids(self.elem_gdf)
@@ -1908,7 +1878,7 @@ modes. Elara will continue with all stops found in schedule.
             veh_mode = self.vehicle_mode(veh_id)
 
             if veh_mode == self.mode:
-                stop_id = elem.get('facility')
+                stop_id = elem.get("facility")
                 prev_stop_id = self.veh_tracker.get(veh_id, None)
                 self.veh_tracker[veh_id] = stop_id
 
@@ -1938,46 +1908,45 @@ modes. Elara will continue with all stops found in schedule.
 
         # Check if counts dictionary exists
         if not self.counts:
-            self.logger.warning('Vehicle counts dictionary is empty.')
+            self.logger.warning("Vehicle counts dictionary is empty.")
             return None
 
-        names = ['from_stop', 'to_stop', 'veh_id', str(self.groupby_person_attribute)]
+        names = ["from_stop", "to_stop", "veh_id", str(self.groupby_person_attribute)]
 
         counts_df = pd.Series(self.counts)
         # include vehicle counts (in case a vehicle arrives at a stop more than once)
         counts_df = pd.concat([counts_df, pd.Series(self.veh_counts)], axis=1)
 
-        counts_df.index.names = names + ['to_stop_arrival_hour']
-        counts_df.columns = ['pax_counts', 'veh_counts']
+        counts_df.index.names = names + ["to_stop_arrival_hour"]
+        counts_df.columns = ["pax_counts", "veh_counts"]
         # move vehicle counts to the series index
-        counts_df = counts_df.reset_index().set_index(names + ['to_stop_arrival_hour', 'veh_counts'])['pax_counts']
+        counts_df = counts_df.reset_index().set_index(names + ["to_stop_arrival_hour", "veh_counts"])["pax_counts"]
 
         # scale
         counts_df *= 1.0 / self.config.scale_factor
 
         del self.counts
-        counts_df = counts_df.unstack(level='to_stop_arrival_hour').sort_index().fillna(0)
+        counts_df = counts_df.unstack(level="to_stop_arrival_hour").sort_index().fillna(0)
 
         # Join stop data and build geometry
         for n in ("from_stop", "to_stop"):
             counts_df = counts_df.reset_index().set_index(n)
             stop_info = self.elem_gdf.copy()
             stop_info.columns = [f"{n}_{c}" for c in stop_info.columns]
-            counts_df = counts_df.join(
-                    stop_info, how="left"
-                )
+            counts_df = counts_df.join(stop_info, how="left")
 
             counts_df.index.name = n
 
-        counts_df = counts_df.reset_index().set_index(names+['veh_counts'])
-        counts_df['route'] = counts_df.index.get_level_values('veh_id').map(self.veh_route)
-        counts_df['total'] = counts_df.sum(1)
+        counts_df = counts_df.reset_index().set_index(names + ["veh_counts"])
+        counts_df["route"] = counts_df.index.get_level_values("veh_id").map(self.veh_route)
+        counts_df["total"] = counts_df.sum(1)
 
-        counts_df['geometry'] = [LineString([o, d]) for o, d in zip(
-            counts_df.from_stop_geometry, counts_df.to_stop_geometry)]
-        counts_df.drop('from_stop_geometry', axis=1, inplace=True)
-        counts_df.drop('to_stop_geometry', axis=1, inplace=True)
-        counts_df = gpd.GeoDataFrame(counts_df, geometry='geometry')
+        counts_df["geometry"] = [
+            LineString([o, d]) for o, d in zip(counts_df.from_stop_geometry, counts_df.to_stop_geometry)
+        ]
+        counts_df.drop("from_stop_geometry", axis=1, inplace=True)
+        counts_df.drop("to_stop_geometry", axis=1, inplace=True)
+        counts_df = gpd.GeoDataFrame(counts_df, geometry="geometry")
 
         #################
         # temp: unit tests currently require all hours of the day as columns
@@ -1992,24 +1961,22 @@ modes. Elara will continue with all stops found in schedule.
             self.result_dfs[key] = counts_df
 
         # calc sum across all recorded attribute classes
-        totals_df = counts_df.reset_index().groupby(['from_stop', 'to_stop', 'veh_id', 'route', 'veh_counts']).sum()
+        totals_df = counts_df.reset_index().groupby(["from_stop", "to_stop", "veh_id", "route", "veh_counts"]).sum()
 
         # Join stop data and build geometry
         for n in ("from_stop", "to_stop"):
             totals_df = totals_df.reset_index().set_index(n)
             stop_info = self.elem_gdf.copy()
             stop_info.columns = [f"{n}_{c}" for c in stop_info.columns]
-            totals_df = totals_df.join(
-                    stop_info, how="left"
-                )
+            totals_df = totals_df.join(stop_info, how="left")
             totals_df.index.name = n
 
-        totals_df['geometry'] = [
+        totals_df["geometry"] = [
             LineString([o, d]) for o, d in zip(totals_df.from_stop_geometry, totals_df.to_stop_geometry)
         ]
-        totals_df.drop('from_stop_geometry', axis=1, inplace=True)
-        totals_df.drop('to_stop_geometry', axis=1, inplace=True)
-        totals_df = gpd.GeoDataFrame(totals_df, geometry='geometry')
+        totals_df.drop("from_stop_geometry", axis=1, inplace=True)
+        totals_df.drop("to_stop_geometry", axis=1, inplace=True)
+        totals_df = gpd.GeoDataFrame(totals_df, geometry="geometry")
 
         key = f"{self.name}"
         self.result_dfs[key] = totals_df
@@ -2020,7 +1987,7 @@ class VehicleDepartureLog(EventHandlerTool):
     Extract vehicle depart times at stops.
     """
 
-    requirements = ['events', 'transit_schedule']
+    requirements = ["events", "transit_schedule"]
 
     def __init__(self, config, mode="all", **kwargs):
         super().__init__(config, mode, **kwargs)
@@ -2040,7 +2007,7 @@ class VehicleDepartureLog(EventHandlerTool):
 
         self.vehicle_departure_log = self.start_csv_chunk_writer(
             pt_csv_name, write_path=write_path, compression=self.compression
-            )
+        )
 
     def process_event(self, elem) -> None:
         """
@@ -2048,7 +2015,7 @@ class VehicleDepartureLog(EventHandlerTool):
         """
         event_type = elem.get("type")
 
-        if event_type == 'VehicleDepartsAtFacility':
+        if event_type == "VehicleDepartsAtFacility":
 
             veh_id = elem.get("vehicle")
             veh_mode = self.vehicle_mode(veh_id)
@@ -2060,14 +2027,13 @@ class VehicleDepartureLog(EventHandlerTool):
             if veh_mode == self.mode or self.mode == "all":  # None = all modes
 
                 pt_departures = [
-
                     {
-                        'veh_id': veh_id,
-                        'veh_mode': veh_mode,
-                        'veh_route': veh_route,
-                        'stop_id': stop_id,
-                        'departure_time': departure_time,
-                        'delay': delay
+                        "veh_id": veh_id,
+                        "veh_mode": veh_mode,
+                        "veh_route": veh_route,
+                        "stop_id": stop_id,
+                        "departure_time": departure_time,
+                        "delay": delay,
                     }
                 ]
 
@@ -2084,7 +2050,7 @@ class VehiclePassengerLog(EventHandlerTool):
     Extract a log of passenger boardings and alightings to a PT vehicle.
     """
 
-    requirements = ['events', 'transit_schedule']
+    requirements = ["events", "transit_schedule"]
 
     def __init__(self, config, mode="all", **kwargs):
         super().__init__(config, mode, **kwargs)
@@ -2104,7 +2070,7 @@ class VehiclePassengerLog(EventHandlerTool):
 
         self.vehicle_passenger_log = self.start_csv_chunk_writer(
             pt_csv_name, write_path=write_path, compression=self.compression
-            )
+        )
 
     def process_event(self, elem) -> None:
         """
@@ -2113,14 +2079,14 @@ class VehiclePassengerLog(EventHandlerTool):
         event_type = elem.get("type")
 
         # keep track of the last vehicle stop
-        if event_type == 'VehicleArrivesAtFacility':
+        if event_type == "VehicleArrivesAtFacility":
             veh_id = elem.get("vehicle")
             # veh_mode = self.vehicle_mode(veh_id)
             stop_id = elem.get("facility")
             self.veh_tracker[veh_id] = stop_id
 
         # add boardings/alightings to the log
-        if event_type in ['PersonEntersVehicle', 'PersonLeavesVehicle']:
+        if event_type in ["PersonEntersVehicle", "PersonLeavesVehicle"]:
             agent_id = elem.get("person")
             veh_id = elem.get("vehicle")
             veh_route = self.vehicle_route(veh_id)
@@ -2133,13 +2099,13 @@ class VehiclePassengerLog(EventHandlerTool):
 
                     boardings = [
                         {
-                            'agent_id': agent_id,
-                            'event_type': event_type,
-                            'veh_id': veh_id,
-                            'stop_id': stop_id,
-                            'time': event_time,
-                            'veh_mode': veh_mode,
-                            'veh_route': veh_route,
+                            "agent_id": agent_id,
+                            "event_type": event_type,
+                            "veh_id": veh_id,
+                            "stop_id": stop_id,
+                            "time": event_time,
+                            "veh_mode": veh_mode,
+                            "veh_route": veh_route,
                         }
                     ]
                     self.vehicle_passenger_log.add(boardings)
@@ -2155,7 +2121,7 @@ class VehicleLinkLog(EventHandlerTool):
     Extract all vehicle link entry/link exit events
     """
 
-    requirements = ['events', 'transit_schedule']
+    requirements = ["events", "transit_schedule"]
 
     def __init__(self, config, mode=None, **kwargs):
         super().__init__(config, mode, **kwargs)
@@ -2199,7 +2165,7 @@ class VehicleLinkLog(EventHandlerTool):
                     "veh_id": veh_id,
                     "veh_mode": self.vehicle_mode(veh_id),
                     "link_id": link_id,
-                    "entry_time": entry_time
+                    "entry_time": entry_time,
                 }
 
                 self.event_staging[veh_id] = entry
@@ -2230,13 +2196,13 @@ class AgentTollsLog(EventHandlerTool):
     Additionally produces a 24-hr summary of tolls paid by each agent
     """
 
-    requirements = ['events', 'attributes']
+    requirements = ["events", "attributes"]
 
     def __init__(self, config, mode=None, groupby_person_attribute=None, **kwargs):
         super().__init__(config, mode, **kwargs)
 
         self.groupby_person_attribute = groupby_person_attribute
-        self.valid_modes = ['all']
+        self.valid_modes = ["all"]
 
         # initialise results storage
         self.result_dfs = dict()
@@ -2258,14 +2224,14 @@ class AgentTollsLog(EventHandlerTool):
 
         self.agent_attributes, found_attributes = self.extract_attributes()
 
-        file_name = f'{self.name}.csv'
+        file_name = f"{self.name}.csv"
 
         self.agent_tolls_log = self.start_csv_chunk_writer(
             file_name, write_path=write_path, compression=self.compression
         )
 
     def process_event(self, elem) -> None:
-        '''
+        """
         Logs tolling events using ChunkWriter.
         Additionally, add agents and toll amounts to dictionary
         Tolls paid are incremented over the 24hr simulation
@@ -2275,7 +2241,7 @@ class AgentTollsLog(EventHandlerTool):
         amount="-1.0" purpose="toll"  />
 
         TODO - Mode filters (don't have veh id)
-        '''
+        """
 
         event_type = elem.get("type")
 
@@ -2291,17 +2257,11 @@ class AgentTollsLog(EventHandlerTool):
                 time = float(elem.get("time"))
                 attrib = None
 
-                toll_event = [
-                    {
-                        'agent_id': agent_id,
-                        'toll_amount': toll_amount,
-                        'time': time
-                    }
-                ]
+                toll_event = [{"agent_id": agent_id, "toll_amount": toll_amount, "time": time}]
 
                 if self.groupby_person_attribute is not None:
                     attrib = self.agent_attributes.attributes.get(agent_id, {}).get(self.groupby_person_attribute)
-                    toll_event[0]['class'] = attrib
+                    toll_event[0]["class"] = attrib
 
                 # Add to ChunkWriter and update summary dictionaries
                 self.agent_tolls_log.add(toll_event)
@@ -2309,16 +2269,13 @@ class AgentTollsLog(EventHandlerTool):
                 existing_record = self.toll_log_summary.get(agent_id)
 
                 if existing_record is not None:
-                    existing_record['toll_total'] += toll_amount
-                    existing_record['tolls_incurred'] += 1
+                    existing_record["toll_total"] += toll_amount
+                    existing_record["tolls_incurred"] += 1
                 else:
-                    self.toll_log_summary[agent_id] = {
-                        'toll_total': toll_amount,
-                        'tolls_incurred': 1
-                    }
+                    self.toll_log_summary[agent_id] = {"toll_total": toll_amount, "tolls_incurred": 1}
 
                     if attrib is not None:
-                        self.toll_log_summary[agent_id]['class'] = attrib
+                        self.toll_log_summary[agent_id]["class"] = attrib
 
         return None
 
@@ -2333,7 +2290,7 @@ class AgentTollsLog(EventHandlerTool):
 
         # build summaries
         df = pd.DataFrame.from_dict(self.toll_log_summary, orient="index")
-        df.index.name = 'agent_id'
+        df.index.name = "agent_id"
 
         key = f"{self.name}_summary"
         self.result_dfs[key] = df
@@ -2343,17 +2300,13 @@ class AgentTollsLog(EventHandlerTool):
             if "class" in df.columns:
 
                 key = f"{self.name}_summary_{self.groupby_person_attribute}"
-                grouper = df.groupby('class')
-                df_grouped = grouper.agg({'toll_total': ['sum', 'mean', 'count'], 'tolls_incurred': 'sum'})
+                grouper = df.groupby("class")
+                df_grouped = grouper.agg({"toll_total": ["sum", "mean", "count"], "tolls_incurred": "sum"})
                 df_grouped.droplevel(0, axis=1)
-                df_grouped.columns = [
-                    'toll_total', 'avg_per_agent', 'tolled_agents', 'tolls_incurred'
-                ]
+                df_grouped.columns = ["toll_total", "avg_per_agent", "tolled_agents", "tolls_incurred"]
                 self.result_dfs[key] = df_grouped
             else:
-                self.logger.warning(
-                    "groupby person attribute failed for {self} - no 'class' column found in df"
-                    )
+                self.logger.warning("groupby person attribute failed for {self} - no 'class' column found in df")
 
         del self.toll_log_summary
 
@@ -2363,7 +2316,7 @@ class VehicleLinksAnimate(EventHandlerTool):
     Extract all vehicle trips as Arrow format.
     """
 
-    requirements = ['events', 'transit_schedule', 'network']
+    requirements = ["events", "transit_schedule", "network"]
     cmap = {
         "car": [200, 200, 200],
         "bus": [255, 40, 40],
@@ -2371,7 +2324,7 @@ class VehicleLinksAnimate(EventHandlerTool):
         "rail": [0, 128, 255],
         "subway": [153, 51, 255],
         "underground": [153, 51, 255],
-        "metro": [153, 51, 255]
+        "metro": [153, 51, 255],
     }
     start_time = 1649116800  # 22/04/05
 
@@ -2392,9 +2345,7 @@ class VehicleLinksAnimate(EventHandlerTool):
 
         file_name = f"{self.name}.arrow"
 
-        self.vehicle_trips = self.start_arrow_chunk_writer(
-            file_name, write_path=write_path
-        )
+        self.vehicle_trips = self.start_arrow_chunk_writer(file_name, write_path=write_path)
 
         self.vehicles = {}
         self.traces = {}
@@ -2415,10 +2366,7 @@ class VehicleLinksAnimate(EventHandlerTool):
             time = int(float(elem.get("time")))
 
             if veh_mode == self.mode or self.mode == "all":
-                self.vehicles[veh_id] = {
-                    "veh_mode": veh_mode,
-                    "color": self.get_color(veh_mode)
-                    }
+                self.vehicles[veh_id] = {"veh_mode": veh_mode, "color": self.get_color(veh_mode)}
                 self.traces[veh_id] = [self.get_entry_coords(link_id)]
                 self.timestamps[veh_id] = [self.get_timestamp(time)]
 
@@ -2475,7 +2423,7 @@ class EventHandlerWorkStation(WorkStation):
     tools = {
         "link_vehicle_speeds": LinkVehicleSpeeds,
         "link_vehicle_counts": LinkVehicleCounts,
-        "link_vehicle_capacity":LinkVehicleCapacity,
+        "link_vehicle_capacity": LinkVehicleCapacity,
         "link_passenger_counts": LinkPassengerCounts,
         "route_passenger_counts": RoutePassengerCounts,
         "stop_passenger_counts": StopPassengerCounts,
@@ -2487,7 +2435,7 @@ class EventHandlerWorkStation(WorkStation):
         "vehicle_passenger_log": VehiclePassengerLog,
         "vehicle_link_log": VehicleLinkLog,
         "agent_tolls_log": AgentTollsLog,
-        "vehicle_links_animate": VehicleLinksAnimate
+        "vehicle_links_animate": VehicleLinksAnimate,
     }
 
     def __init__(self, config):
@@ -2502,45 +2450,45 @@ class EventHandlerWorkStation(WorkStation):
         """
 
         if not self.resources:
-            self.logger.warning(f'{str(self)} has no resources, build returning None.')
+            self.logger.warning(f"{str(self)} has no resources, build returning None.")
             return None
 
         # build tools
         super().build(write_path=write_path)
 
         # iterate through events
-        events = self.supplier_resources['events']
-        self.logger.info('***Commencing Event Iteration***')
+        events = self.supplier_resources["events"]
+        self.logger.info("***Commencing Event Iteration***")
         base = 1
 
         for i, event in enumerate(events.elems):
 
-            if not (i+1) % base:
-                self.logger.info(f'parsed {i + 1} events')
+            if not (i + 1) % base:
+                self.logger.info(f"parsed {i + 1} events")
                 base *= 2
 
             for handler in self.resources.values():
                 handler.process_event(event)
 
-        self.logger.info('*** Completed Event Iteration ***')
+        self.logger.info("*** Completed Event Iteration ***")
 
         # finalise
         # Generate event file outputs
-        self.logger.debug(f'{str(self)} .resources = {self.resources}')
+        self.logger.debug(f"{str(self)} .resources = {self.resources}")
 
         for handler_name, handler in self.resources.items():
-            self.logger.debug(f'Finalising {str(handler)}')
+            self.logger.debug(f"Finalising {str(handler)}")
             handler.finalise()
 
             if self.config.contract:
-                self.logger.debug(f'Contracting {str(handler)}')
+                self.logger.debug(f"Contracting {str(handler)}")
                 handler.contract_results()
 
-            self.logger.debug(f'{len(handler.result_dfs)} result_dfs at {str(handler)}')
+            self.logger.debug(f"{len(handler.result_dfs)} result_dfs at {str(handler)}")
 
             if handler.result_dfs:
                 output_path = handler.config.output_path
-                self.logger.info(f'Writing results from {str(handler)} to {output_path}')
+                self.logger.info(f"Writing results from {str(handler)} to {output_path}")
 
                 for name, df in handler.result_dfs.items():
                     csv_name = "{}.csv".format(name)
@@ -2570,8 +2518,9 @@ def table_position(elem_indices, class_indices, periods, elem_id, attribute_clas
     return x, y, z
 
 
-def table_position_4d(origin_elem_indices, destination_elem_indices, class_indices,
-                      periods, o_id, d_id, attribute_class, time):
+def table_position_4d(
+    origin_elem_indices, destination_elem_indices, class_indices, periods, o_id, d_id, attribute_class, time
+):
     """
     Calculate the result table coordinates from a given a origin element ID,
     destination elmement ID, attribute class and timestamp.
